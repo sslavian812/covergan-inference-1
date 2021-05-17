@@ -32,6 +32,13 @@ def process_api_request(body):
     }
     return json.dumps(result)
 
+# TODO:
+# 1) The user selects an emotion and uploads a music file
+# 2) The user confirms their choice, music file and emotion are sent to the server
+# 3) The user is presented with generated covers (sent from the server)
+# 4) The user can click on a cover to get it displayed (or download) as a full SVG
+# 5) The user can press the refresh button to get new samples generated
+
 
 class ApiServerController(object):
     @cherrypy.expose('/health')
