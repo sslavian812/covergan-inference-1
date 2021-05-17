@@ -1,0 +1,6 @@
+[submodule "src/covergan"]
+	path = src/covergan
+	url = git@github.com:IlyaBizyaev/covergan.git
+[submodule "src/protosvg"]
+	path = src/protosvg
+	url = git@github.com:IlyaBizyaev/protosvg.git
