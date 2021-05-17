@@ -1,3 +1,22 @@
 cherrypy==18.1.1
 pyyaml
 psutil
+
+# PyDiffVG Python dependencies
+cssutils
+scikit-image
+svgwrite
+svgpathtools
+
+# Audio extraction dependencies
+essentia
+eyed3
+mutagen
+
+# CoverGAN dependencies
+grpcio
+grpcio-tools
+Pillow
+kornia
+matplotlib
+scipy
