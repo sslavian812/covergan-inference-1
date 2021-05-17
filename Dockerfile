@@ -1,3 +1,13 @@
+FROM rust:1.52.1 as builder
+
+# Build ProtoSVG
+WORKDIR /usr/src/protosvg
+COPY ./src/protosvg .
+RUN rustup component add rustfmt
+RUN cargo install --locked --path .
+
+
+
 FROM python:3.7
 
 EXPOSE 8080
@@ -7,11 +17,13 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
-        ffmpeg \
         ssh \
         supervisor && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Copy the built ProtoSVG
+COPY --from=builder /usr/local/cargo/bin/protosvg /usr/bin/protosvg
 
 # Install PyTorch
 RUN pip install torch==1.8.1+cpu torchvision==0.9.1+cpu torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html
@@ -20,21 +32,10 @@ RUN pip install torch==1.8.1+cpu torchvision==0.9.1+cpu torchaudio==0.8.1 -f htt
 COPY ./requirements.txt /inference-api/requirements.txt
 RUN pip install -r /inference-api/requirements.txt
 
-# Install Rust
-ENV RUSTUP_HOME=/rust
-ENV CARGO_HOME=/cargo 
-ENV PATH=/cargo/bin:/rust/bin:$PATH
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
-
 # Clone and build DiffVG
 WORKDIR /tmp/builds
 RUN git clone --recursive https://github.com/BachiLi/diffvg
 RUN cd diffvg && python setup.py install
-
-# Copy and build ProtoSVG
-COPY ./src/protosvg protosvg
-RUN cd protosvg && cargo build --release && cp ./target/release/protosvg /usr/bin/
-RUN rm -rf protosvg
 
 # Install the fonts
 WORKDIR /tmp/fonts
