@@ -2,3 +2,8 @@ app:
   port: 8080
   host: "0.0.0.0"
   thread_pool: 5
+service:
+  protosvg_address: "localhost:50051"
+  font_dir: "/usr/share/fonts"
+  gan_weights: "/inference-api/weights/covergan.pt"
+  captioner_weights: "/inference-api/weights/captioner.pt"

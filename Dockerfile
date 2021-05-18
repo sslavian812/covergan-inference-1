@@ -11,6 +11,7 @@ RUN cargo install --locked --path .
 FROM python:3.7
 
 EXPOSE 8080
+EXPOSE 50051
 
 # System dependencies
 RUN apt-get update && \
@@ -62,4 +63,4 @@ COPY ./config.yml ./config.yml
 
 
 # Run the processes
-CMD ["/usr/bin/supervisord"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

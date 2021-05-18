@@ -1,43 +1,57 @@
+import base64
 import json
 import os
+import tempfile
 import time
-import cherrypy
-from cherrypy import log
-import yaml
 
 import psutil
+import yaml
+
+import cherrypy
+from cherrypy import log
+
+from outer.emotions import Emotion, emotion_from_str
+from service import CoverService
+
+
 process = psutil.Process(os.getpid())  # for monitoring and debugging purposes
 
 config = yaml.safe_load(open("config.yml"))
 
+service = CoverService(
+    config["service"]["protosvg_address"],
+    config["service"]["gan_weights"],
+    config["service"]["captioner_weights"],
+    config["service"]["font_dir"]
+)
 
-def process_api_request(body):
+
+def base64_encode(img):
+    return base64.b64encode(img).decode('utf-8')
+
+
+def process_generate_request(tmp_filename: str,
+                             track_artist: str, track_name: str,
+                             emotions: [Emotion]) -> [(str, str)]:
     """
     This methos is for extracting json parameters and processing the actual api request.
     All api format and logic is to be kept in here.
     :param body:
     :return:
     """
-    payload = body.get('payload')
-
     start = time.time()
-    # ...
-    # call you business logic methods here, implement them in different module.
-    # ...
+    
+    result = service.generate(
+        tmp_filename, track_artist, track_name, emotions,
+        num_samples=5, rasterize=True, watermark=True
+    )
+    os.remove(tmp_filename)
+    result = list(map(lambda x: (x[0], base64_encode(x[1])), result))
+    
     time_spent = time.time() - start
     log("Completed api call.Time spent {0:.3f} s".format(time_spent))
 
-    result = {
-        'result': payload
-    }
-    return json.dumps(result)
-
-# TODO:
-# 1) The user selects an emotion and uploads a music file
-# 2) The user confirms their choice, music file and emotion are sent to the server
-# 3) The user is presented with generated covers (sent from the server)
-# 4) The user can click on a cover to get it displayed (or download) as a full SVG
-# 5) The user can press the refresh button to get new samples generated
+    return result
 
 
 class ApiServerController(object):
@@ -53,12 +67,36 @@ class ApiServerController(object):
         }
         return json.dumps(result).encode("utf-8")
 
-    @cherrypy.expose('/method1')
-    def method1(self):
-        cl = cherrypy.request.headers['Content-Length']
-        raw = cherrypy.request.body.read(int(cl))
-        body = json.loads(raw)
-        return process_api_request(body).encode("utf-8")
+    @cherrypy.expose('/generate')
+    @cherrypy.tools.json_out()
+    def generate_method(self, upload_audio_file, track_artist: str, track_name: str, emotions: str):
+        emotions_parsed = None
+        if isinstance(emotions, str):
+            emotions = [emotion_from_str(x) for x in emotions.split(",")]
+            if not None in emotions:
+                emotions_parsed = emotions
+        if emotions_parsed is None:
+            return cherrypy.HTTPError(400, message="Incorrect emotions specified")
+        
+        if track_artist is None:
+            return cherrypy.HTTPError(400, message="Track artist not specified")
+        
+        if track_name is None:
+            return cherrypy.HTTPError(400, message="Track name not specified")
+        
+        track_artist = str(track_artist)[:50]
+        track_name = str(track_name)[:70]
+        
+        tmp_filename = None
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            tmp_filename = f.name
+            while True:
+                data = upload_audio_file.file.read(8192)
+                if not data:
+                    break
+                out.write(data)
+
+        return process_generate_request(tmp_filename, track_artist, track_name, emotions_parsed)
 
 
 if __name__ == '__main__':
