@@ -2,6 +2,7 @@ import base64
 import json
 import mimetypes
 import os
+import random
 import tempfile
 import time
 
@@ -81,14 +82,13 @@ class ApiServerController(object):
     @cherrypy.expose
     @cherrypy.tools.gzip()
     @cherrypy.tools.json_out()
-    def generate(self, audio_file, track_artist: str, track_name: str, emotions: str):
-        emotions_parsed = None
-        if isinstance(emotions, str):
-            emotions = [emotion_from_str(x) for x in emotions.split(",")]
-            if not None in emotions:
-                emotions_parsed = emotions
-        if emotions_parsed is None:
-            raise cherrypy.HTTPError(400, message="Incorrect emotions specified")
+    def generate(self, audio_file, track_artist: str, track_name: str, emotion: str = None):
+        if emotion is None:
+            emotion = random.choice(list(Emotion))
+        else:
+            emotion = emotion_from_str(emotion)
+            if emotion is None:
+                raise cherrypy.HTTPError(400, message="Incorrect emotion specified")
 
         track_artist = track_artist[:50]
         track_name = track_name[:70]
@@ -105,7 +105,7 @@ class ApiServerController(object):
         return process_generate_request(
             tmp_filename,
             track_artist, track_name,
-            emotions_parsed
+            [emotion]
         )
 
 

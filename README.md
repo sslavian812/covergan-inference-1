@@ -24,6 +24,6 @@ Below is an example command that can be used to trigger the generation endpoint:
 ```sh
 curl --progress-bar \
     -F "audio_file=@/home/user/audio.flac" \
-    "http://localhost:8080/generate?track_artist=Cool%20Band&track_name=Song&emotions=joy,relaxed" \
+    "http://localhost:8080/generate?track_artist=Cool%20Band&track_name=Song&emotion=joy" \
     -o ~/output.json
 ```
