@@ -16,10 +16,7 @@ from outer.emotions import Emotion, emotion_from_str
 from service import CoverService
 
 
-EXT_BY_MAGIC = {}
-
-
-process = psutil.Process(os.getpid())  # for monitoring and debugging purposes
+process = psutil.Process(os.getpid())  # For monitoring purposes
 
 config = yaml.safe_load(open("config.yml"))
 
@@ -38,27 +35,21 @@ def base64_encode(img):
 def process_generate_request(tmp_filename: str,
                              track_artist: str, track_name: str,
                              emotions: [Emotion]) -> [(str, str)]:
-    """
-    This methos is for extracting json parameters and processing the actual api request.
-    All api format and logic is to be kept in here.
-    :param body:
-    :return:
-    """
     start = time.time()
-    
+
     mime = magic.Magic(mime=True)
     ext = mimetypes.guess_extension(mime.from_file(tmp_filename))
     if ext is not None:
         os.rename(tmp_filename, tmp_filename + ext)
         tmp_filename += ext
-    
+
     result = service.generate(
         tmp_filename, track_artist, track_name, emotions,
         num_samples=5, rasterize=True, watermark=True
     )
     os.remove(tmp_filename)
     result = list(map(lambda x: (x[0], base64_encode(x[1])), result))
-    
+
     time_spent = time.time() - start
     log("Completed api call.Time spent {0:.3f} s".format(time_spent))
 
@@ -69,9 +60,9 @@ class ApiServerController(object):
     @cherrypy.expose('/health')
     def health(self):
         result = {
-            "status": "OK",  # TODO when is status not ok?
+            "status": "OK",  # TODO: when is status not ok?
             "info": {
-                "mem": "{0:.3f} MiB".format(process.memory_info().rss / 1024.0 / 1024.0),
+                "mem": "{0:.3f} MiB".format(process.memory_info().rss / (1024 ** 2)),
                 "cpu": process.cpu_percent(),
                 "threads": len(process.threads())
             }
@@ -89,16 +80,10 @@ class ApiServerController(object):
                 emotions_parsed = emotions
         if emotions_parsed is None:
             return cherrypy.HTTPError(400, message="Incorrect emotions specified")
-        
-        if track_artist is None:
-            return cherrypy.HTTPError(400, message="Track artist not specified")
-        
-        if track_name is None:
-            return cherrypy.HTTPError(400, message="Track name not specified")
-        
-        track_artist = str(track_artist)[:50]
-        track_name = str(track_name)[:70]
-        
+
+        track_artist = track_artist[:50]
+        track_name = track_name[:70]
+
         tmp_filename = None
         with tempfile.NamedTemporaryFile(delete=False) as f:
             tmp_filename = f.name
@@ -108,7 +93,11 @@ class ApiServerController(object):
                     break
                 f.write(data)
 
-        return process_generate_request(tmp_filename, track_artist, track_name, emotions_parsed)
+        return process_generate_request(
+            tmp_filename,
+            track_artist, track_name,
+            emotions_parsed
+        )
 
 
 if __name__ == '__main__':
@@ -123,7 +112,9 @@ if __name__ == '__main__':
         'log.screen': True,
         'tools.response_headers.on': True,
         'tools.encode.encoding': 'utf-8',
-        'tools.response_headers.headers': [('Content-Type', 'application/json;encoding=utf-8')],
+        'tools.response_headers.headers': [
+            ('Content-Type', 'application/json;encoding=utf-8')
+        ],
     })
 
     try:
