@@ -1,9 +1,11 @@
 import base64
 import json
+import mimetypes
 import os
 import tempfile
 import time
 
+import magic
 import psutil
 import yaml
 
@@ -12,6 +14,9 @@ from cherrypy import log
 
 from outer.emotions import Emotion, emotion_from_str
 from service import CoverService
+
+
+EXT_BY_MAGIC = {}
 
 
 process = psutil.Process(os.getpid())  # for monitoring and debugging purposes
@@ -41,6 +46,12 @@ def process_generate_request(tmp_filename: str,
     """
     start = time.time()
     
+    mime = magic.Magic(mime=True)
+    ext = mimetypes.guess_extension(mime.from_file(tmp_filename))
+    if ext is not None:
+        os.rename(tmp_filename, tmp_filename + ext)
+        tmp_filename += ext
+    
     result = service.generate(
         tmp_filename, track_artist, track_name, emotions,
         num_samples=5, rasterize=True, watermark=True
@@ -67,9 +78,10 @@ class ApiServerController(object):
         }
         return json.dumps(result).encode("utf-8")
 
-    @cherrypy.expose('/generate')
+    @cherrypy.expose
+    @cherrypy.tools.gzip()
     @cherrypy.tools.json_out()
-    def generate_method(self, upload_audio_file, track_artist: str, track_name: str, emotions: str):
+    def generate(self, audio_file, track_artist: str, track_name: str, emotions: str):
         emotions_parsed = None
         if isinstance(emotions, str):
             emotions = [emotion_from_str(x) for x in emotions.split(",")]
@@ -91,10 +103,10 @@ class ApiServerController(object):
         with tempfile.NamedTemporaryFile(delete=False) as f:
             tmp_filename = f.name
             while True:
-                data = upload_audio_file.file.read(8192)
+                data = audio_file.file.read(8192)
                 if not data:
                     break
-                out.write(data)
+                f.write(data)
 
         return process_generate_request(tmp_filename, track_artist, track_name, emotions_parsed)
 

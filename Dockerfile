@@ -18,7 +18,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
-        ssh \
+        libmagic1 \
         supervisor && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -37,18 +37,20 @@ RUN pip install -r /inference-api/requirements.txt
 WORKDIR /tmp/builds
 RUN git clone --recursive https://github.com/BachiLi/diffvg
 RUN cd diffvg && python setup.py install
+RUN rm -rf /tmp/builds
 
 # Install the fonts
 WORKDIR /tmp/fonts
 COPY ./fonts.txt fonts.txt
 RUN wget -i fonts.txt
+RUN mv Neucha.ttf Neucha-Regular.ttf
 RUN mv PT_Serif-Web-Bold.ttf PTSerif-Bold.ttf
 RUN mv PT_Serif-Web-Regular.ttf PTSerif-Regular.ttf
 RUN mv *.ttf /usr/share/fonts
 RUN fc-cache -fv
+RUN rm -rf /tmp/fonts
 
-# Prepare the supervisor
-RUN mkdir -p /var/log/supervisor
+# Configure the supervisor
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Copy CoverGAN
