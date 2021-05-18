@@ -16,6 +16,9 @@ from outer.emotions import Emotion, emotion_from_str
 from service import CoverService
 
 
+SUPPORTED_EXTENSIONS = {"flac", "mp3", "aiff", "wav", "ogg"}
+
+
 process = psutil.Process(os.getpid())  # For monitoring purposes
 
 config = yaml.safe_load(open("config.yml"))
@@ -39,7 +42,13 @@ def process_generate_request(tmp_filename: str,
 
     mime = magic.Magic(mime=True)
     ext = mimetypes.guess_extension(mime.from_file(tmp_filename))
-    if ext is not None:
+    if ext is None:
+        os.remove(tmp_filename)
+        raise cherrypy.HTTPError(400, message="Unrecognized file format")
+    elif ext[1:] not in SUPPORTED_EXTENSIONS:
+        os.remove(tmp_filename)
+        raise cherrypy.HTTPError(400, message="Unsupported file format")
+    else:
         os.rename(tmp_filename, tmp_filename + ext)
         tmp_filename += ext
 
@@ -79,7 +88,7 @@ class ApiServerController(object):
             if not None in emotions:
                 emotions_parsed = emotions
         if emotions_parsed is None:
-            return cherrypy.HTTPError(400, message="Incorrect emotions specified")
+            raise cherrypy.HTTPError(400, message="Incorrect emotions specified")
 
         track_artist = track_artist[:50]
         track_name = track_name[:70]
