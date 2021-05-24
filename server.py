@@ -66,7 +66,7 @@ def process_generate_request(tmp_filename: str,
 
     result = service.generate(
         tmp_filename, track_artist, track_name, emotions,
-        num_samples=5, rasterize=True, watermark=True
+        num_samples=6, rasterize=True, watermark=False
     )
     os.remove(tmp_filename)
     result = list(map(lambda x: (x[0], base64_encode(x[1])), result))
