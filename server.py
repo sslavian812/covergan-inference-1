@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import mimetypes
 import os
 import random
@@ -19,16 +20,21 @@ from service import CoverService
 
 SUPPORTED_EXTENSIONS = {"flac", "mp3", "aiff", "wav", "ogg"}
 
-
 process = psutil.Process(os.getpid())  # For monitoring purposes
 
 config = yaml.safe_load(open("config.yml"))
+
+log_level = logging.getLevelName(config["app"]["log_level"])
+logger = logging.getLogger("server")
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(log_level)
 
 service = CoverService(
     config["service"]["protosvg_address"],
     config["service"]["gan_weights"],
     config["service"]["captioner_weights"],
-    config["service"]["font_dir"]
+    config["service"]["font_dir"],
+    log_level=log_level
 )
 
 
@@ -41,15 +47,20 @@ def process_generate_request(tmp_filename: str,
                              emotions: [Emotion]) -> [(str, str)]:
     start = time.time()
 
+    logger.info(f"REQ: artist={track_artist}, name={track_name}, emotions={emotions}")
+
     mime = magic.Magic(mime=True)
     ext = mimetypes.guess_extension(mime.from_file(tmp_filename))
     if ext is None:
         os.remove(tmp_filename)
+        logger.info("REQ: Rejecting, unrecognized file format")
         raise cherrypy.HTTPError(400, message="Unrecognized file format")
     elif ext[1:] not in SUPPORTED_EXTENSIONS:
         os.remove(tmp_filename)
+        logger.info(f"REQ: Rejecting, unsupported file format: {ext}")
         raise cherrypy.HTTPError(400, message="Unsupported file format")
     else:
+        logger.info(f"REQ: Accepting file format: {ext}")
         os.rename(tmp_filename, tmp_filename + ext)
         tmp_filename += ext
 
