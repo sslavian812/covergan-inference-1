@@ -19,6 +19,7 @@ RUN apt-get update && \
         build-essential \
         cmake \
         libmagic1 \
+        libraqm-dev \
         supervisor && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
