@@ -12,7 +12,8 @@ mutagen
 # CoverGAN dependencies
 grpcio
 grpcio-tools
-Pillow
+# Fixes a segfault of text sizing
+Pillow>=8.2.0
 kornia
 matplotlib
 scipy
