@@ -69,7 +69,7 @@ def process_generate_request(tmp_filename: str,
         num_samples=6, rasterize=True, watermark=False
     )
     os.remove(tmp_filename)
-    result = list(map(lambda x: (x[0], base64_encode(x[1])), result))
+    result = list(map(lambda x: {"svg": x[0], "base64": base64_encode(x[1])}, result))
 
     time_spent = time.time() - start
     log("Completed api call.Time spent {0:.3f} s".format(time_spent))

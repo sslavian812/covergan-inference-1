@@ -10,7 +10,7 @@ RUN cargo install --locked --path .
 
 FROM python:3.7
 
-EXPOSE 8080
+EXPOSE 8092
 EXPOSE 50051
 
 # System dependencies
@@ -55,7 +55,10 @@ RUN rm -rf /tmp/fonts
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Copy CoverGAN
-COPY ./weights /inference-api/weights
+
+# should be mounted as a volume
+# COPY ./weights /inference-api/weights
+
 COPY ./src/covergan /inference-api/covergan
 
 WORKDIR /inference-api/covergan
